@@ -1,0 +1,11 @@
+const test=require('node:test');const assert=require('node:assert/strict');const M=require('../docs/model.js');
+const catalog=[{id:'a',theme:'mar',approach:'ciencia',available:true},{id:'b',theme:'mar',approach:'relato',available:true},{id:'c',theme:'mar',approach:'ciencia',available:false},{id:'d',theme:'ciudad',approach:null,available:true}];
+test('Combinar filtros excluye títulos no disponibles',()=>assert.deepEqual(M.filter(catalog,{theme:'mar',approach:'ciencia'}).map(t=>t.id),['a']));
+test('Un filtro inexistente no devuelve sustitutos',()=>assert.equal(M.filter(catalog,{approach:'historia'}).length,0));
+test('Sin filtros se preserva exploración del catálogo disponible',()=>assert.deepEqual(M.filter(catalog).map(t=>t.id),['a','b','d']));
+test('Un metadato ausente no se infiere',()=>assert.equal(M.filter(catalog,{approach:'ciencia'}).some(t=>t.id==='d'),false));
+test('La cuenta sin monto y límite no hereda valores',()=>{const v=M.planView({plan:'D',amount:null,currency:'PEN',limit:null});assert.equal(v.amount,'No disponible');assert.equal(v.limit,'Límite no disponible');});
+test('No se guarda sin consentimiento y no se muta el estado original',()=>{const a={};assert.deepEqual(M.save(a,'C01',{theme:'mar'},false),{});assert.deepEqual(a,{});});
+test('Los perfiles de cuentas distintas se aíslan',()=>{const a=M.save({C01:{theme:'mar'}},'C02',{theme:'ciudad'},true);assert.equal(a.C01.theme,'mar');assert.equal(a.C02.theme,'ciudad');});
+test('Eliminar requiere confirmación y solo afecta la cuenta elegida',()=>{const a={C01:{theme:'mar'},C02:{theme:'ciudad'}};assert.ok(M.remove(a,'C01',false).C01);assert.deepEqual(M.remove(a,'C01',true),{C02:{theme:'ciudad'}});assert.ok(a.C01);});
+test('El balance distingue categorías y conserva una vacía',()=>{const g=M.group(catalog,{seen:['a'],pending:[]});assert.deepEqual(g.seen.map(t=>t.id),['a']);assert.deepEqual(g.pending,[]);});
